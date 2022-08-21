@@ -1,0 +1,31 @@
+CREATE TABLE Account (
+    id bigserial primary key,
+    name varchar(255) not null,
+    currency varchar(10) not null,
+    sum double precision not null
+);
+
+INSERT INTO Account(name, currency, sum) VALUES ('Cash USD', 'USD', 100);
+INSERT INTO Account(name, currency, sum) VALUES ('Cash RUB', 'RUB', 200);
+INSERT INTO Account(name, currency, sum) VALUES ('Coinbase BTC', 'BTC', 0.5);
+INSERT INTO Account(name, currency, sum) VALUES ('Binance BTC', 'BTC', 0.5);
+INSERT INTO Account(name, currency, sum) VALUES ('Bank Account RUB', 'RUB', 500);
+
+CREATE TABLE Tx (
+    id bigserial primary key,
+    discriminator char not null,
+    description varchar(255) not null,
+    -- стоило бы использовать более подходящий тип для даты,
+    -- но у меня возникли сложности с конвертацией между стандартными типами дат из haskell и simple postgresql
+    ts bigint not null,
+
+    fromId bigint,
+    fromAmount double precision,
+    
+    toId bigint,
+    toAmount double precision
+);
+
+INSERT INTO Tx(discriminator, description, ts, fromId, fromAmount) VALUES ('O', 'Laundery', (extract(epoch from now()) * 1000), 2, 200);
+
+INSERT INTO Tx(discriminator, description, ts, toId, toAmount) VALUES ('I', 'Salary', (extract(epoch from now()) * 1000), 1, 10000);

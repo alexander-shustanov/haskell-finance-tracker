@@ -1,0 +1,25 @@
+POST http://localhost/account
+Content-Type: application/json
+
+{
+    "name": "Hello ",
+    "currency": "USDT",
+    "sum": 500,
+    "id": 6
+}
+
+
+GET http://localhost/balance?currency=USDT
+
+
+GET http://localhost/accounts
+
+
+POST http://localhost/transfer?from=1&to=2&amount=100&description=test
+
+POST http://localhost/income?account=1&amount=100&description=test
+
+POST http://localhost/outcome?account=1&amount=100&description=test
+
+
+GET http://localhost/transactions
