@@ -4,15 +4,17 @@ Content-Type: application/json
 {
     "name": "Hello ",
     "currency": "USDT",
-    "sum": 500,
-    "id": 6
+    "sum": 500
 }
 
 
-GET http://localhost/balance?currency=USDT
+GET http://localhost/balance?currency=RUB
 
 
 GET http://localhost/accounts
+
+
+GET http://localhost/account/1
 
 
 POST http://localhost/transfer?from=1&to=2&amount=100&description=test

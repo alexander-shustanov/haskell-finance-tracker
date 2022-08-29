@@ -17,7 +17,7 @@ CREATE TABLE Tx (
     description varchar(255) not null,
     -- стоило бы использовать более подходящий тип для даты,
     -- но у меня возникли сложности с конвертацией между стандартными типами дат из haskell и simple postgresql
-    ts bigint not null,
+    ts timestamptz default now() not null,
 
     fromId bigint,
     fromAmount double precision,
@@ -26,6 +26,6 @@ CREATE TABLE Tx (
     toAmount double precision
 );
 
-INSERT INTO Tx(discriminator, description, ts, fromId, fromAmount) VALUES ('O', 'Laundery', (extract(epoch from now()) * 1000), 2, 200);
+INSERT INTO Tx(discriminator, description, fromId, fromAmount) VALUES ('O', 'Laundery',  2, 200);
 
-INSERT INTO Tx(discriminator, description, ts, toId, toAmount) VALUES ('I', 'Salary', (extract(epoch from now()) * 1000), 1, 10000);
+INSERT INTO Tx(discriminator, description, toId, toAmount) VALUES ('I', 'Salary',  1, 10000);

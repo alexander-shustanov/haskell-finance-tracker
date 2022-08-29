@@ -3,17 +3,17 @@
 module Model where
 
 import Data.Aeson
-import Data.Aeson.Types (Pair)
-import Data.Text
+import Data.Text.Lazy
 import Data.Time
 import GHC.Generics (Generic)
-
--- import qualified Text.Read as TR
--- import qualified Text.Show as TS
 
 -- такой подход не позволит быстро добавить новую валюту
 -- возможно стоило бы сделать что-то в духе Currency {symbol :: Text, basePrice :: Double {- цена одной единицы в каких-то условных единицах -}}
 data Currency = USD | RUB | GBP | BTC | USDT deriving (Show, Read, Eq, Generic)
+
+instance ToJSON Currency
+
+instance FromJSON Currency
 
 convertMoney :: Currency -> Currency -> Double -> Double
 convertMoney from to value = value * price from to
@@ -24,14 +24,22 @@ convertMoney from to value = value * price from to
     price USD USDT = 1
     price x y
       | x == y = 1
-      | otherwise = price USD x / price USD y
+      | otherwise = price USD y / price USD x
 
-instance ToJSON Currency
+class NewId a where
+  newId :: a
 
-instance FromJSON Currency
+newtype AccountId = AccountId Int deriving (Show, Generic, Eq)
+
+instance NewId AccountId where
+  newId = AccountId 0
+
+instance FromJSON AccountId
+
+instance ToJSON AccountId
 
 data Account = Account
-  { accountId :: Int {- для accountId стоило бы ввести свой тип newtype AccountId = Int -},
+  { accountId :: AccountId,
     accountName :: Text,
     accountCurrency :: Currency,
     accountSum :: Double
@@ -41,51 +49,59 @@ data Account = Account
 instance FromJSON Account where
   parseJSON (Object o) =
     Account
-      <$> o .:? "id" .!= 0
+      <$> o .:? "id" .!= (AccountId 0)
       <*> o .: "name"
       <*> o .: "currency"
       <*> o .: "sum"
 
 instance ToJSON Account where
-  toJSON (Account id name currency sum) =
+  toJSON (Account accountId name currency sum) =
     object
-      [ "id" .= id,
+      [ "id" .= accountId,
         "name" .= name,
         "currency" .= currency,
         "sum" .= sum
       ]
 
--- наверно не имело смысл вводить этот тип, а хранить данные напрямую в Income, Outcome и Transfer
+newtype TxId = TxId Int deriving (Show, Generic)
+
+instance NewId TxId where
+  newId = TxId 0
+
+instance FromJSON TxId
+
+instance ToJSON TxId
+
+data Tx = Tx
+  { txId :: TxId,
+    txDescription :: Text,
+    txDate :: UTCTime,
+    txDetails :: TxDetails
+  }
+  deriving (Show)
+
+data TxDetails
+  = Income
+      { toLeg :: TxLeg
+      }
+  | Outcome
+      { fromLeg :: TxLeg
+      }
+  | Transfer
+      { fromLeg :: TxLeg,
+        toLeg :: TxLeg
+      }
+  deriving (Show)
+
+-- наверно не имело смысл вводить этот тип, а хранить данные напрямую в Income {toAccountId, toSum}, Outcome {fromAccountId, fromSum} и Transfer {toAccountId, toSum, fromAccountId, fromSum}
+-- но тогда Income и Outcome будут шарить свои поля с Transfer, что создаст не очень безопасный код
+-- я не знаю, как поступают в таких ситуациях, поэтому вынес в отдельный тип
+-- но надо признать, что проблему это не решило
 data TxLeg = TxLeg
-  { legAccountId :: Int,
+  { legAccountId :: AccountId,
     legSum :: Double
   }
   deriving (Show, Generic)
-
-instance FromJSON TxLeg
-
-instance ToJSON TxLeg
-
-data TxData
-  = Income
-      { txLeg :: TxLeg
-      }
-  | Outcome
-      { txLeg :: TxLeg
-      }
-  | Transfer
-      { transferFrom :: TxLeg,
-        transferTo :: TxLeg
-      }
-  deriving (Show)
-
-data Tx = Tx
-  { txId :: Int {- newtype TxId = Int -},
-    txDescription :: Text,
-    txDate :: UTCTime,
-    txData :: TxData
-  }
-  deriving (Show)
 
 instance ToJSON Tx where
   toJSON tx =
@@ -96,7 +112,7 @@ instance ToJSON Tx where
           "description" .= txDescription tx,
           "date" .= show (txDate tx)
         ]
-      specificProperties = case txData tx of
+      specificProperties = case txDetails tx of
         Income (TxLeg to amount) ->
           [ "type" .= String "income",
             "toAccount" .= to,
